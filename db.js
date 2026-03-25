@@ -1,15 +1,24 @@
+// db.js — Production Ready (Render + MongoDB Atlas)
+
 const mongoose = require("mongoose");
-require("dotenv").config();
 
 const connectDB = async () => {
   try {
-    const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/anveshana";
+    const uri = process.env.MONGODB_URI;
+
+    if (!uri) {
+      console.log("❌ MONGODB_URI is not set!");
+      console.log("💡 Add MONGODB_URI in Render Environment Variables");
+      return false;
+    }
+
+    console.log("🔄 Connecting to MongoDB...");
+    console.log("📍 URI starts with:", uri.substring(0, 30) + "...");
 
     await mongoose.connect(uri);
 
     console.log("✅ MongoDB Connected:", mongoose.connection.host);
 
-    // Handle connection events
     mongoose.connection.on("error", (err) => {
       console.error("❌ MongoDB error:", err);
     });
@@ -18,13 +27,11 @@ const connectDB = async () => {
       console.warn("⚠️ MongoDB disconnected");
     });
 
+    return true;
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error.message);
-    console.log("💡 Make sure MongoDB is running or check your MONGODB_URI in .env");
-    console.log("💡 Falling back to in-memory mode...");
     return false;
   }
-  return true;
 };
 
 module.exports = connectDB;

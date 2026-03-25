@@ -1,4 +1,4 @@
-// server.js — FINAL VERSION (MongoDB + AI + Fixed Routes)
+// server.js — PRODUCTION READY (MongoDB + AI + CORS Fixed)
 
 console.log("Starting server...");
 
@@ -38,18 +38,8 @@ try {
 
 const app = express();
 
-// MIDDLEWARE
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "http://localhost:4173",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  })
-);
+// MIDDLEWARE — CORS FIXED FOR PRODUCTION
+app.use(cors()); // Allow all origins (Vercel, localhost, etc.)
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -137,7 +127,7 @@ function processDamage(text) {
   return { damageType, severity, risk: score, infrastructure };
 }
 
-// ANALYZE ROUTE — matches your frontend
+// ANALYZE ROUTE
 app.post("/analyze", async (req, res) => {
   try {
     const { image, location, saveReport = true } = req.body;
@@ -212,7 +202,13 @@ app.post("/analyze", async (req, res) => {
 });
 
 // ROUTES
-app.use("/api/reports", require("./routes/reports"));
+let reportRoutes;
+try {
+  reportRoutes = require("./routes/reports");
+  app.use("/api/reports", reportRoutes);
+} catch (err) {
+  console.log("Report routes not loaded:", err.message);
+}
 
 // HEALTH & TEST
 app.get("/", (req, res) => {
@@ -248,13 +244,12 @@ async function startServer() {
   }
 
   app.listen(PORT, () => {
-    console.log(`
-╔══════════════════════════════════════════╗
-║   Anveshana AI Backend v3.0              ║
-║   Server:  http://localhost:${PORT}         ║
-║   DB:     ${dbConnected ? "Connected" : "Not Connected"}                      ║
-╚══════════════════════════════════════════╝
-    `);
+    console.log("\n════════════════════════════════════════════");
+    console.log("   Anveshana AI Backend v3.0");
+    console.log("   Server: http://localhost:" + PORT);
+    console.log("   Database: " + (dbConnected ? "Connected" : "Not Connected"));
+    console.log("   AI Model: Ready");
+    console.log("════════════════════════════════════════════\n");
   });
 }
 

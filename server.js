@@ -59,15 +59,22 @@ console.log("Middleware configured");
 let classifier;
 async function loadModel() {
   if (!classifier) {
-    console.log("Loading AI model (first time only)...");
-    classifier = await pipeline(
-      "zero-shot-image-classification",
-      "Xenova/clip-vit-base-patch32"
-    );
-    console.log("AI model loaded");
+    try {
+      console.log("Loading AI model (first time only)...");
+      classifier = await pipeline(
+        "zero-shot-image-classification",
+        "Xenova/clip-vit-base-patch32"
+      );
+      console.log("AI model loaded");
+    } catch (err) {
+      console.error("Model preload failed:", err.message);
+    }
   }
   return classifier;
 }
+
+// 🔥 PRELOAD MODEL ON SERVER START (ONLY ADDITION)
+loadModel();
 
 // DAMAGE PROCESSING ENGINE
 function processDamage(text) {
@@ -177,7 +184,6 @@ app.post("/analyze", async (req, res) => {
       ...processed,
     };
 
-    // Auto-save to MongoDB
     if (saveReport && Report) {
       try {
         const report = new Report({

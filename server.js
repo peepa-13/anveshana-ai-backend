@@ -1,4 +1,4 @@
-// server.js — PRODUCTION READY (MongoDB + AI + CORS Fixed)
+// server.js — FINAL VERSION (MongoDB + AI + Fixed Routes)
 
 console.log("Starting server...");
 
@@ -38,8 +38,15 @@ try {
 
 const app = express();
 
-// MIDDLEWARE — CORS FIXED FOR PRODUCTION
-app.use(cors()); // Allow all origins (Vercel, localhost, etc.)
+// ✅ FIXED CORS (allows deployed frontend also)
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -167,7 +174,6 @@ app.post("/api/analyze", async (req, res) => {
       ...processed,
     };
 
-    // Auto-save to MongoDB
     if (saveReport && Report) {
       try {
         const report = new Report({
@@ -188,7 +194,6 @@ app.post("/api/analyze", async (req, res) => {
         });
         await report.save();
         analysisResult.reportId = report.reportId;
-        console.log("Report saved:", report.reportId);
       } catch (err) {
         console.warn("Could not save report:", err.message);
       }
@@ -201,32 +206,48 @@ app.post("/api/analyze", async (req, res) => {
   }
 });
 
-// ROUTES
-let reportRoutes;
-try {
-  reportRoutes = require("./routes/reports");
-  app.use("/api/reports", reportRoutes);
-} catch (err) {
-  console.log("Report routes not loaded:", err.message);
-}
+// REPORT ROUTES
+app.use("/api/reports", require("./routes/reports"));
 
-// HEALTH & TEST
+// ROOT
 app.get("/", (req, res) => {
   res.json({ status: "running", message: "Anveshana AI Backend v3" });
 });
 
+// ✅ FIXED HEALTH ROUTE (IMPORTANT)
 app.get("/api/health", async (req, res) => {
   const mongoose = require("mongoose");
+
   res.json({
     success: true,
-    server: "running",
-    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    data: {
+      server: "running",
+      database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    },
   });
 });
 
-app.get("/test", (req, res) => {
+// ✅ ADDED TEST ROUTE
+app.get("/api/analyze/test", (req, res) => {
   const result = processDamage("damaged electric pole");
-  res.json({ success: true, caption: "Test", ...result });
+
+  res.json({
+    success: true,
+    data: {
+      caption: "Test",
+      ...result,
+      confidence: 0.95,
+    },
+  });
+});
+
+// ✅ GLOBAL ERROR HANDLER
+app.use((err, req, res, next) => {
+  console.error("Global error:", err);
+  res.status(500).json({
+    success: false,
+    error: err.message || "Internal Server Error",
+  });
 });
 
 console.log("Routes configured");
@@ -244,12 +265,13 @@ async function startServer() {
   }
 
   app.listen(PORT, () => {
-    console.log("\n════════════════════════════════════════════");
-    console.log("   Anveshana AI Backend v3.0");
-    console.log("   Server: http://localhost:" + PORT);
-    console.log("   Database: " + (dbConnected ? "Connected" : "Not Connected"));
-    console.log("   AI Model: Ready");
-    console.log("════════════════════════════════════════════\n");
+    console.log(`
+╔══════════════════════════════════════════╗
+║   Anveshana AI Backend v3.0              ║
+║   Server:  http://localhost:${PORT}         ║
+║   DB:     ${dbConnected ? "Connected" : "Not Connected"}                      ║
+╚══════════════════════════════════════════╝
+    `);
   });
 }
 

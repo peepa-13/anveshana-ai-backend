@@ -128,7 +128,7 @@ function processDamage(text) {
 }
 
 // ANALYZE ROUTE
-app.post("/analyze", async (req, res) => {
+app.post("/api/analyze", async (req, res) => {
   try {
     const { image, location, saveReport = true } = req.body;
 
